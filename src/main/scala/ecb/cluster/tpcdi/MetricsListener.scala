@@ -23,7 +23,7 @@ class MetricsListener extends Actor with ActorLogging {
      
   def receive = {
     case ClusterMetricsChanged(clusterMetrics) =>
-      clusterMetrics.filter(_.address == AddressFromURIString("akka.tcp://tpcdi@127.0.0.1:2551")) foreach { nodeMetrics =>
+      clusterMetrics.filter(_.address == AddressFromURIString("akka.tcp://tpcdi@127.0.0.1:2552")) foreach { nodeMetrics =>
         logHeap(nodeMetrics)
         logCpu(nodeMetrics)
       }
