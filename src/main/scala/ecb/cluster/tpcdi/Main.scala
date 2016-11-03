@@ -11,6 +11,7 @@ object Main extends App {
   val system = ActorSystem("tpcdi", config)
 
   val roles = system.settings.config.getStringList("akka.cluster.roles")
+
   if(roles.contains("metric")) {
     Cluster(system).registerOnMemberUp {
       system.actorOf(
@@ -19,12 +20,6 @@ object Main extends App {
           terminationMessage = PoisonPill,
           settings = ClusterSingletonManagerSettings(system).withRole("metric")),
         name = "metrics-listener")
-
-
-
-      //system.actorOf(Props[MetricsListener], "metrics-listener")
-      //val ml = system.actorOf(Props[MetricsListener], "metrics-listener")
-      //ClusterMetricsExtension(system).subscribe(ml)
     }
   }
 }
