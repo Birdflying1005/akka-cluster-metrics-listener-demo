@@ -1,46 +1,52 @@
 package ecb.cluster.tpcdi
 
-import akka.actor.ActorLogging
-import akka.actor.Actor
-import akka.actor.AddressFromURIString
+import akka.actor.{Actor, ActorLogging, Address}
 import akka.cluster.Cluster
-import akka.cluster.metrics.ClusterMetricsEvent
-import akka.cluster.metrics.ClusterMetricsChanged
-import akka.cluster.ClusterEvent.CurrentClusterState
-import akka.cluster.metrics.NodeMetrics
-import akka.cluster.metrics.StandardMetrics.HeapMemory
+import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberUp}
+import akka.cluster.metrics.{ClusterMetricsChanged, ClusterMetricsExtension, NodeMetrics}
 import akka.cluster.metrics.StandardMetrics.Cpu
-import akka.cluster.metrics.ClusterMetricsExtension
-import java.net.URLEncoder
      
+
 class MetricsListener extends Actor with ActorLogging {
-  val selfAddress = Cluster(context.system).selfAddress
+
+  val cluster = Cluster(context.system)
   val extension = ClusterMetricsExtension(context.system)
+
+  val extResourceRole = "external-resource"
+  var extResourceAddr = None: Option[Address]
      
-  override def preStart(): Unit = extension.subscribe(self)
-      
-  override def postStop(): Unit = extension.unsubscribe(self)
+  override def preStart(): Unit = {
+    extension.subscribe(self)
+
+    cluster.subscribe(self, initialStateMode = InitialStateAsEvents,
+      classOf[MemberEvent])
+  }
      
   def receive = {
-    case ClusterMetricsChanged(clusterMetrics) =>
-      clusterMetrics.filter(_.address == AddressFromURIString("akka.tcp://tpcdi@127.0.0.1:2552")) foreach { nodeMetrics =>
-        logHeap(nodeMetrics)
-        logCpu(nodeMetrics)
+    case MemberUp(member) => {
+      if(member.roles.contains(extResourceRole)) {
+        extResourceAddr = Some(member.address)
+        log.info("Member with role '{}' is Up: {}", extResourceRole, member.address)
       }
-    case state: CurrentClusterState => // Ignore.
+    }
+
+    case ClusterMetricsChanged(clusterMetrics) =>
+      extResourceAddr match {
+        case Some(extResourceAddr) => {
+          clusterMetrics.filter(_.address == extResourceAddr) foreach { 
+            nodeMetrics => logCpu(nodeMetrics)
+          }
+        }
+       
+        case None => // No external resource node is up.
+      }
   }
      
-  def logHeap(nodeMetrics: NodeMetrics): Unit = nodeMetrics match {
-    case HeapMemory(address, timestamp, used, committed, max) =>
-      log.info("{} Used heap: {} MB", address, used.doubleValue / 1024 / 1024)
-    case _ => // No heap info.
-  }
-     
+  override def postStop(): Unit = extension.unsubscribe(self)
+
   def logCpu(nodeMetrics: NodeMetrics): Unit = nodeMetrics match {
     case Cpu(address, timestamp, Some(systemLoadAverage), cpuCombined, cpuStolen, processors) =>
-      log.info("{} Load: {} ({} processors)", address, systemLoadAverage, processors)
+      log.info("Address: {} Load: {} ({} processors)", address, systemLoadAverage, processors)
     case _ => // No cpu info.
   }
 }
-
-
