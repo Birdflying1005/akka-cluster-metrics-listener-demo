@@ -37,7 +37,6 @@ class MetricsListener extends Actor with ActorLogging {
             nodeMetrics => logCpu(nodeMetrics)
           }
         }
-       
         case None => // No external resource node is up.
       }
   }
@@ -47,6 +46,6 @@ class MetricsListener extends Actor with ActorLogging {
   def logCpu(nodeMetrics: NodeMetrics): Unit = nodeMetrics match {
     case Cpu(address, timestamp, Some(systemLoadAverage), cpuCombined, cpuStolen, processors) =>
       log.info("Address: {} Load: {} ({} processors)", address, systemLoadAverage, processors)
-    case _ => // No cpu info.
+    case _ => log.debug("No cpu info in NodeMetrics")
   }
 }
