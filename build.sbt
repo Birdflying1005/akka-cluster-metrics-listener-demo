@@ -13,7 +13,8 @@ libraryDependencies ++= {
     "com.typesafe.akka"       %% "akka-cluster-tools"                % akkaVersion,
     "com.typesafe.akka"       %% "akka-remote"                       % akkaVersion,
     "com.typesafe.akka"       %% "akka-slf4j"                        % akkaVersion,
-    "ch.qos.logback"          %  "logback-classic"                   % "1.1.7"
+    "ch.qos.logback"          %  "logback-classic"                   % "1.1.7",
+    "io.kamon"                %  "sigar-loader"                      % "1.6.6-rev002"
   )
 }
 
