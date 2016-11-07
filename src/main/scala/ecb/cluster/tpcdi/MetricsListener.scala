@@ -4,7 +4,7 @@ import akka.actor.{Actor, ActorLogging, Address}
 import akka.cluster.Cluster
 import akka.cluster.ClusterEvent.{InitialStateAsEvents, MemberEvent, MemberUp}
 import akka.cluster.metrics.{ClusterMetricsChanged, ClusterMetricsExtension, NodeMetrics}
-import akka.cluster.metrics.StandardMetrics.Cpu
+import akka.cluster.metrics.StandardMetrics.{Cpu, HeapMemory}
      
 
 class MetricsListener extends Actor with ActorLogging {
@@ -33,8 +33,9 @@ class MetricsListener extends Actor with ActorLogging {
     case ClusterMetricsChanged(clusterMetrics) =>
       extResourceAddr match {
         case Some(extResourceAddr) => {
-          clusterMetrics.filter(_.address == extResourceAddr) foreach { 
-            nodeMetrics => logCpu(nodeMetrics)
+          clusterMetrics.filter(_.address == extResourceAddr) foreach { nodeMetrics => 
+            logCpu(nodeMetrics)
+            logHeap(nodeMetrics)
           }
         }
         case None => // No external resource node is up.
@@ -47,5 +48,17 @@ class MetricsListener extends Actor with ActorLogging {
     case Cpu(address, timestamp, Some(systemLoadAverage), cpuCombined, cpuStolen, processors) =>
       log.info("Address: {} Load: {} ({} processors)", address, systemLoadAverage, processors)
     case _ => log.debug("No cpu info in NodeMetrics")
+  }
+
+  def logHeap(nodeMetrics: NodeMetrics): Unit = nodeMetrics match {
+    case HeapMemory(address, timestamp, used, committed, max) =>
+      log.info("Address: {} Used heap: {} MB", address, used.doubleValue / 1024 / 1024)
+    case _ => // No heap info.
+  }
+
+  def logNet(nodeMetrics: NodeMetrics): Unit = nodeMetrics match {
+    case Net(address, timestamp, tcpInbound) =>
+      log.info("Address: {} TCPInbound: {}", address, tcpInbound)
+    case _ => log.debug("No net info in NodeMetrics")
   }
 }

@@ -2,7 +2,7 @@ package ecb.cluster.tpcdi
 
 import akka.actor.{ActorSystem, Address}
 import akka.cluster.Cluster
-import akka.cluster.metrics.{ClusterMetricsExtension, Metric, SigarMetricsCollector}
+import akka.cluster.metrics.{ClusterMetricsExtension, Metric, NodeMetrics, SigarMetricsCollector}
 import org.hyperic.sigar.SigarProxy
 
 class MetricsCollector(address: Address, decayFactor: Double, sigar: SigarProxy)
@@ -28,4 +28,24 @@ class MetricsCollector(address: Address, decayFactor: Double, sigar: SigarProxy)
     name = "TcpInboundTotal",
     value = netStat.getTcpInboundTotal.asInstanceOf[Number],
     decayFactor = decayFactorOption)
+}
+
+object Net {
+
+  /*
+  def smooth: Int = v match {
+    case Some(value) => value 
+    case None        => 0 
+  }
+  */
+
+  def unapply(nodeMetrics: NodeMetrics): Option[(Address, Long, Long)] = {
+
+      for {
+        tcpInbound <- nodeMetrics.metric("TcpInboundTotal")
+      } yield (nodeMetrics.address, nodeMetrics.timestamp,
+        tcpInbound.smoothValue.longValue)
+
+    //(nodeMetrics.address, nodeMetrics.timestamp, nodeMetrics.metric("TcpInboundTotal").get)
+  }
 }
