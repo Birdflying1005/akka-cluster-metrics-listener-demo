@@ -2,7 +2,7 @@
 
 ### How do I run this?
 
-Use two terminals if you are using a single host.
+Use two terminals on a single host.
 
 In one terminal run:
 
