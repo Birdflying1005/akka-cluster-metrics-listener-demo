@@ -1,4 +1,4 @@
-# ecb
+### Demo of an Akka Cluster using a MetricsListener 
 
 ### How do I run this?
 
